@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      p.timestamp = message.timestamp;
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>عيد ام سعيد يا مروة</title>
+<link rel="preload" as="image" href="https://files.catbox.moe/90zou0.jpg" crossorigin>
+<link rel="preload" as="audio" href="https://files.catbox.moe/kswcss.mp3" crossorigin>
+<link rel="preload" as="audio" href="https://files.catbox.moe/flh3b9.mp3" crossorigin>
+<link rel="preload" as="audio" href="https://files.catbox.moe/xsmmt8.mp3" crossorigin>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://files.catbox.moe">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fffdf7; --card:#ffffff; --accent:#D4AF37; --text:#2c2c2c; --muted:#8a7a5a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  font-family:'Cairo',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+  transition:background .4s,color .3s;
+  touch-action:manipulation;
+}
+
+/* themes */
+body[data-theme="gold"]{--bg:#fffdf7;--card:#ffffff;--accent:#D4AF37;--text:#3a2e1a;--muted:#9c8b6b}
+body[data-theme="pink"]{--bg:#ffe4ec;--card:#ffffff;--accent:#e91e63;--text:#5a2a3a;--muted:#a05a75}
+body[data-theme="pink"]::before{content:"";position:fixed;inset:0;opacity:.06;background-image:url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 20c5 8 15 10 20 5-2 7-10 12-20 12-10 0-18-5-20-12 5 5 15 3 20-5z' fill='%23e91e63'/%3E%3C/svg%3E");pointer-events:none}
+body[data-theme="heritage"]{--bg:#014d2e;--card:#0a5c38;--accent:#D4AF37;--text:#fff8e1;--muted:#c8b78e}
+body[data-theme="heritage"]::before{content:"";position:fixed;inset:0;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23D4AF37' stroke-width='1'%3E%3Cpath d='M0 40h80M40 0v80M20 20l40 40M60 20L20 60'/%3E%3Ccircle cx='40' cy='40' r='15'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+body[data-theme="cartoon"]{--bg:linear-gradient(135deg,#ff9a9e 0%,#fad0c4 40%,#a1c4fd 100%);--card:rgba(255,255,255,.94);--accent:#ff4757;--text:#2f3542;--muted:#6c7a89}
+body[data-theme="minimal"]{--bg:#0a0a0a;--card:#1c1c1c;--accent:#ffffff;--text:#f0f0f0;--muted:#9a9a9a}
+
+/* screens */
+.screen{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  padding:24px;opacity:0;pointer-events:none;
+  transition:opacity .12s ease-out;overflow-y:auto;
+  z-index:10;
+}
+.screen.active{opacity:1;pointer-events:auto}
+#loader.screen, #password.screen{justify-content:center}
+#setup.screen, #styleSelect.screen{padding-top:28px;padding-bottom:90px}
+.container{width:100%;max-width:560px;margin:0 auto}
+
+/* loader */
+#loader .spinner{
+  width:56px;height:56px;border:4px solid rgba(0,0,0,.1);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 1s linear infinite;margin:0 auto 20px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader h2{font-weight:800;font-size:22px;text-align:center}
+
+/* audio controls */
+#audioControls{
+  position:fixed;top:14px;left:14px;display:flex;gap:10px;z-index:2000;
+  opacity:0;pointer-events:none;transition:.3s;
+}
+#audioControls.visible{opacity:1;pointer-events:auto}
+.ctrl-btn{
+  width:48px;height:48px;border-radius:16px;background:var(--card);
+  border:1px solid rgba(0,0,0,.08);color:var(--accent);
+  display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.12);
+  cursor:pointer;transition:.2s;
+}
+.ctrl-btn:active{transform:scale(.94)}
+.ctrl-btn.muted{opacity:.6}
+
+/* cards */
+.card{
+  background:var(--card);border-radius:24px;padding:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);margin-bottom:16px;
+  border:1px solid rgba(0,0,0,.05);
+  backdrop-filter:blur(10px);
+}
+
+/* setup */
+.setup-title{font-size:26px;font-weight:800;margin-bottom:20px;text-align:center}
+.songs{display:grid;gap:14px;margin-bottom:24px}
+.song-option{
+  display:flex;flex-direction:column;gap:10px;
+  padding:16px;border-radius:18px;background:var(--card);
+  border:2px solid transparent;cursor:pointer;transition:.2s;
+}
+.song-option.selected{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.song-info{display:flex;align-items:center;gap:12px;font-weight:600;justify-content:flex-start}
+.radio{width:22px;height:22px;border:2px solid var(--muted);border-radius:50%;position:relative;flex-shrink:0}
+.song-option.selected .radio{border-color:var(--accent)}
+.song-option.selected .radio::after{content:"";position:absolute;inset:4px;background:var(--accent);border-radius:50%}
+.listen{
+  background:var(--accent);color:#fff;border:none;padding:10px;
+  border-radius:12px;font-weight:700;font-family:inherit;cursor:pointer;width:100%
+}
+.styles{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px}
+.style-card{
+  padding:12px;border-radius:20px;background:var(--card);cursor:pointer;
+  border:2px solid rgba(0,0,0,.06);text-align:center;transition:.2s;
+}
+.style-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.preview{height:80px;border-radius:14px;margin-bottom:8px}
+.preview.gold{background:#fffdf7;border:2px solid #D4AF37}
+.preview.pink{background:#ffe4ec}
+.preview.heritage{background:#014d2e}
+.preview.cartoon{background:linear-gradient(135deg,#ff9a9e,#a1c4fd)}
+.preview.minimal{background:#000}
+.style-name{font-weight:700;font-size:15px}
+
+.btn-primary{
+  width:100%;height:56px;border:none;border-radius:18px;
+  background:var(--accent);color:#fff;font-size:18px;font-weight:800;
+  font-family:inherit;cursor:pointer;transition:.2s;
+  box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 30%,transparent);
+  opacity:.5;pointer-events:none;
+}
+.btn-primary.active{opacity:1;pointer-events:auto}
+.btn-primary:active{transform:translateY(1px)}
+
+/* password */
+#pwdBox{text-align:center;width:100%}
+#pwdBox h2{font-size:24px;margin-bottom:18px}
+#pwdInput{
+  width:100%;height:60px;text-align:center;font-size:28px;font-weight:800;
+  border-radius:18px;border:2px solid var(--accent);background:var(--card);
+  color:var(--text);font-family:inherit;letter-spacing:8px;margin-bottom:16px;
+}
+.hint{color:var(--muted);margin-top:8px}
+.shake{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+/* app */
+#app{justify-content:flex-start;padding:0}
+.app-header{
+  position:sticky;top:0;z-index:5;background:var(--bg);
+  padding:70px 20px 16px;display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.app-header img{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.app-header h1{font-size:22px;margin:0 0 4px;font-weight:800}
+.app-header p{margin:0;color:var(--muted);font-weight:600}
+.app-content{flex:1;width:100%;max-width:720px;margin:0 auto;padding:20px 16px 100px;overflow-y:auto}
+.app-section{display:none;animation:fade .4s}
+.app-section.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.poem-card{
+  padding:22px;font-size:19px;line-height:2;font-weight:600;
+  background:var(--card);border-radius:22px;margin-bottom:16px;
+  border-right:4px solid var(--accent);
+}
+
+.text-block{
+  font-size:20px;line-height:2.1;font-weight:600;padding:24px;
+  background:var(--card);border-radius:24px;white-space:pre-wrap;
+}
+
+/* gift */
+.gift-wrap{text-align:center}
+#rose{width:220px;height:220px;margin:20px auto 10px;position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.petal{
+  position:absolute;width:80px;height:120px;left:50%;top:50%;
+  background:radial-gradient(circle at 30% 30%,#ff7b9c,#e84366);
+  border-radius:70% 70% 70% / 80% 80% 40% 40%;
+  transform-origin:50% 85%;transition:all .7s cubic-bezier(.2,.8,.2,1);
+  box-shadow:inset 0 -10px 20px rgba(0,0,0,.1);
+  transform:translate(-50%,-50%) rotate(calc(var(--i)*60deg)) translateY(30px) scale(.2);
+  opacity:.9;
+}
+#rose.open .petal{transform:translate(-50%,-60%) rotate(calc(var(--i)*60deg)) translateY(-10px) scale(1)}
+.petal:nth-child(odd){background:radial-gradient(circle at 30% 30%,#ff9bb3,#d6355e)}
+.center-dot{
+  position:absolute;width:46px;height:46px;background:radial-gradient(circle,#ffd700,#D4AF37);
+  border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);
+  box-shadow:0 0 25px #D4AF37, inset 0 2px 6px rgba(255,255,255,.6);
+  z-index:2;
+}
+#rose:not(.open) .center-dot{width:30px;height:40px;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;background:radial-gradient(circle,#c44569,#8b223d)}
+.gift-hint{font-weight:700;color:var(--muted);margin-bottom:20px}
+#particles{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#particles span{
+  position:absolute;left:50%;top:40%;width:8px;height:8px;
+  background:var(--accent);border-radius:50%;
+  animation:float 1.5s ease-out forwards;
+  box-shadow:0 0 10px var(--accent);
+}
+@keyframes float{
+  to{transform:translate(var(--x),var(--y)) scale(0);opacity:0}
+}
+.gift-photo{width:100%;max-width:340px;border-radius:24px;margin:24px auto 0;display:block;box-shadow:0 12px 30px rgba(0,0,0,.18);border:4px solid var(--card)}
+
+/* tabs */
+.bottom-tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:color-mix(in srgb,var(--card) 85%,transparent);
+  backdrop-filter:blur(14px);border-top:1px solid rgba(0,0,0,.08);
+  display:flex;padding:8px;gap:6px;
+}
+.tab{
+  flex:1;height:62px;border:none;background:transparent;color:var(--muted);
+  font-family:inherit;font-weight:700;font-size:13px;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  cursor:pointer;transition:.2s;
+}
+.tab.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.tab svg{width:22px;height:22px}
+
+
+/* 120fps optimization */
+.screen, .card, .btn-primary, .app-header, .tab { will-change: transform, opacity; transform: translateZ(0); backface-visibility: hidden; }
+.petal, #rose { will-change: transform, opacity; backface-visibility: hidden; transform-style: preserve-3d; }
+*{ -webkit-tap-highlight-color:transparent; }
+html{ scroll-behavior:auto; }
+body{ -webkit-font-smoothing:antialiased; text-rendering:optimizeSpeed; }
+@media (prefers-reduced-motion:no-preference){
+  .screen{ transition:opacity .12s ease-out; }
+}
+
+/* utils */
+.hidden{display:none}
+</style>
+</head>
+<body data-theme="gold">
+
+<div id="audioControls">
+  <button class="ctrl-btn" id="playBtn" onclick="togglePlay()" aria-label="تشغيل">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+  <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()" aria-label="كتم">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+  </button>
+</div>
+
+<audio id="music" loop preload="auto"></audio>
+
+<!-- LOADER -->
+<div id="loader" class="screen active">
+  <div class="container" style="text-align:center">
+    <div class="spinner" id="loaderSpinner"></div>
+    <h2 id="loaderText">جاري تحميل الهدية...</h2>
+  </div>
+</div>
+
+<!-- SETUP - SONGS -->
+<div id="setup" class="screen">
+  <div class="container">
+    <h2 class="setup-title">١ - اختاري الأغنية</h2>
+    
+    <div class="card">
+      <h3 style="margin:0 0 12px">اختاري من الثلاث أغاني</h3>
+      <div class="songs">
+        <div class="song-option" onclick="selectSong('https://files.catbox.moe/kswcss.mp3', this)">
+          <div class="song-info"><span class="radio"></span><span>أمي الحنونة - علي جاسم</span></div>
+          <button class="listen" onclick="event.stopPropagation(); previewSong('https://files.catbox.moe/kswcss.mp3', this)">استمع</button>
+        </div>
+        <div class="song-option" onclick="selectSong('https://files.catbox.moe/flh3b9.mp3', this)">
+          <div class="song-info"><span class="radio"></span><span>ست الحبايب - فايزة أحمد</span></div>
+          <button class="listen" onclick="event.stopPropagation(); previewSong('https://files.catbox.moe/flh3b9.mp3', this)">استمع</button>
+        </div>
+        <div class="song-option" onclick="selectSong('https://files.catbox.moe/xsmmt8.mp3', this)">
+          <div class="song-info"><span class="radio"></span><span>أمي يا ملاكي - فيروز</span></div>
+          <button class="listen" onclick="event.stopPropagation(); previewSong('https://files.catbox.moe/xsmmt8.mp3', this)">استمع</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="songNextBtn" class="btn-primary" onclick="goToStyle()">التالي</button>
+  </div>
+</div>
+
+<!-- STYLE SELECT -->
+<div id="styleSelect" class="screen">
+  <div class="container">
+    <h2 class="setup-title">٢ - اختاري الستايل</h2>
+    
+    <div class="card">
+      <h3 style="margin:0 0 12px">اختاري شكل الهدية</h3>
+      <div class="styles">
+        <div class="style-card" data-style="gold" onclick="selectStyle('gold')">
+          <div class="preview gold"></div><div class="style-name">فخم ذهبي</div>
+        </div>
+        <div class="style-card" data-style="pink" onclick="selectStyle('pink')">
+          <div class="preview pink"></div><div class="style-name">زهور وردية</div>
+        </div>
+        <div class="style-card" data-style="heritage" onclick="selectStyle('heritage')">
+          <div class="preview heritage"></div><div class="style-name">تراث عربي</div>
+        </div>
+        <div class="style-card" data-style="cartoon" onclick="selectStyle('cartoon')">
+          <div class="preview cartoon"></div><div class="style-name">كرتوني مرح</div>
+        </div>
+        <div class="style-card" data-style="minimal" onclick="selectStyle('minimal')">
+          <div class="preview minimal"></div><div class="style-name">مينيمال عصري</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="styleNextBtn" class="btn-primary" onclick="goToPassword()">دخول لكلمة السر</button>
+  </div>
+</div>
+
+
+<!-- PASSWORD -->
+<div id="password" class="screen">
+  <div class="container">
+    <div id="pwdBox" class="card">
+      <h2>اكتبي تاريخ ميلاد ادم</h2>
+      <input id="pwdInput" type="tel" inputmode="numeric" maxlength="4" placeholder="****">
+      <button class="btn-primary active" onclick="checkPassword()" style="opacity:1;pointer-events:auto">افتحي الهدية</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="screen">
+  <div class="app-header">
+    <img src="https://files.catbox.moe/90zou0.jpg" alt="مروة">
+    <div>
+      <h1>عيد ام سعيد يا مروة</h1>
+      <p>من ادم</p>
+    </div>
+  </div>
+
+  <div class="app-content">
+    <!-- القصيدة -->
+    <section id="poem" class="app-section">
+      <div class="poem-card">يمه يا مروه يا نبع الحنان يا ضحكة بيتنا و يا احلى امان من اشوفج الدنيا تصير عيد و كل تعب يروح و يصير بعيد الله خلاج نور بكل مكان و اسمج بقلبي محفور من زمان</div>
+      <div class="poem-card">يا ملكة گلبي يا ست الكل يا مروه يا وردة ما تذبل ضحكتج دوه و صوتج امان حضنج دفه بليالي البردان ادم ابنج يحبج موت و يدعي ربي يحفظج طول العمر</div>
+      <div class="poem-card">مروه يا يمه يا اغلى البشر تعبتي علينا و ما قصرتي بعمر ربي يخليج تاج فوق الراس و يبعد عنج كل هم و وسواس عيدج يا امي احلى الاعياد و حبج بگلبي ما ينقاس</div>
+    </section>
+
+    <!-- الغزل -->
+    <section id="ghazal" class="app-section">
+      <div class="text-block">مروه يا حبيبتي يا بعد روحي انتي جمالج مو بس وجه جمالج قلب طيب من تضحكين الدنيا تضحك وياج و من تزعلين حتى الورد يذبل وراج انتي مو بس ام انتي صديقة و روح ربي ما يحرمني من دعاج المسموح</div>
+    </section>
+
+    <!-- الدعاء -->
+    <section id="dua" class="app-section">
+      <div class="text-block">يا رب احفظ امي مروه يا رب طول بعمرها و خليها اليه يا رب ابعد عنها المرض و التعب يا رب فرح قلبها مثل ما فرحت گلبي يا رب اجعلها من اهل الجنه يا رب لا تشوف حزن بحياتها</div>
+    </section>
+
+    <!-- رسالتي -->
+    <section id="message" class="app-section">
+      <div class="text-block">يمه مروه انا ادم ابنج الصغير ما اكدر اوصف حبج بكلام انتي كلشي حلو بحياتي تعبتي و سهرتي و ربيتي عيد الام اجه و انا اريد اگولج انتي عيدي كل يوم مو بس اليوم احبج هوايه هوايه يا اغلى ام بالدنيا</div>
+    </section>
+
+    <!-- الهدية -->
+    <section id="gift" class="app-section">
+      <div class="gift-wrap">
+        <p class="gift-hint">اضغطي على الوردة</p>
+        <div id="rose" onclick="toggleFlower()">
+          <div id="particles"></div>
+          <div class="petal" style="--i:0"></div>
+          <div class="petal" style="--i:1"></div>
+          <div class="petal" style="--i:2"></div>
+          <div class="petal" style="--i:3"></div>
+          <div class="petal" style="--i:4"></div>
+          <div class="petal" style="--i:5"></div>
+          <div class="center-dot"></div>
+        </div>
+        <img class="gift-photo" src="https://files.catbox.moe/90zou0.jpg" alt="مروة">
+      </div>
+    </section>
+  </div>
+
+  <nav class="bottom-tabs">
+    <button class="tab active" data-target="poem" onclick="navigate('poem')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+      القصيدة
+    </button>
+    <button class="tab" data-target="ghazal" onclick="navigate('ghazal')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      الغزل
+    </button>
+    <button class="tab" data-target="dua" onclick="navigate('dua')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      الدعاء
+    </button>
+    <button class="tab" data-target="message" onclick="navigate('message')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+      رسالتي
+    </button>
+    <button class="tab" data-target="gift" onclick="navigate('gift')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 12c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2s2 .9 2 2v4c0 1.1-.9 2-2 2zm-8 0c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2s2 .9 2 2v6c0 1.1-.9 2-2 2zm-4 6H4v-4c0-1.1.9-2 2-2h2v6zm8 0h-4v-6h2c1.1 0 2 .9 2 2v4z"/></svg>
+      الهدية
+    </button>
+  </nav>
+</div>
+
+<script>
+const playIcon = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const pauseIcon = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+
+let selectedSong = null;
+let selectedStyle = null;
+let previewAudio = null;
+let previewTimer = null;
+let musicWasPlayingBeforeDua = false;
+let currentSection = 'poem';
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+window.addEventListener('load', ()=>{
+  // preload all resources for instant 120fps experience
+  // تحميل كل الموارد حتى الأزرار والخطوط
+  const resources = [
+    'https://files.catbox.moe/90zou0.jpg',
+    'https://files.catbox.moe/kswcss.mp3',
+    'https://files.catbox.moe/flh3b9.mp3',
+    'https://files.catbox.moe/xsmmt8.mp3',
+    'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap'
+  ];
+  resources.forEach(src=>{
+    if(src.endsWith('.jpg')){ const img=new Image(); img.src=src; img.loading='eager'; }
+    else if(src.endsWith('.mp3')){ const a=new Audio(); a.src=src; a.preload='auto'; a.load(); fetch(src).catch(()=>{}); }
+    else { fetch(src).catch(()=>{}); }
+  });
+  // preload كل العناصر
+  document.fonts.ready.then(()=>{});
+  
+  setTimeout(()=>{
+    if(!navigator.onLine){
+      document.getElementById('loaderText').textContent = 'فعّل الانترنت علمود تحمل الاغاني والصور';
+      document.getElementById('loaderSpinner').style.display='none';
+    }else{
+      showScreen('setup');
+    }
+  },400);
+});
+
+function selectSong(url, el){
+  selectedSong = url;
+  document.querySelectorAll('.song-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  if(previewAudio) previewAudio.pause();
+  const btn = document.getElementById('songNextBtn');
+  btn.classList.add('active');
+}
+function previewSong(url, btn){
+  if(previewAudio){previewAudio.pause();}
+  clearTimeout(previewTimer);
+  document.querySelectorAll('.listen').forEach(b=>b.textContent='استمع');
+  previewAudio = new Audio(url);
+  previewAudio.volume = 0.9;
+  previewAudio.play().catch(()=>{});
+  btn.textContent='يشتغل...';
+  previewTimer = setTimeout(()=>{
+    previewAudio.pause();
+    btn.textContent='استمع';
+  },10000);
+  previewAudio.onended = ()=> btn.textContent='استمع';
+}
+function selectStyle(style){
+  selectedStyle = style;
+  document.body.setAttribute('data-theme', style);
+  document.querySelectorAll('.style-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`[data-style="${style}"]`).classList.add('selected');
+  const btn = document.getElementById('styleNextBtn');
+  btn.classList.add('active');
+}
+function goToStyle(){
+  if(!selectedSong) return;
+  if(previewAudio){ previewAudio.pause(); previewAudio.currentTime=0; }
+  showScreen('styleSelect');
+}
+function checkSetup(){
+  // kept for compatibility
+}
+function goToPassword(){
+  if(!selectedStyle) return;
+  showScreen('password');
+}
+function checkPassword(){
+  const val = document.getElementById('pwdInput').value.trim();
+  if(val === '2007'){
+    const music = document.getElementById('music');
+    music.src = selectedSong;
+    music.load();
+    showScreen('app');
+    document.getElementById('audioControls').classList.add('visible');
+    setTimeout(()=>{ togglePlay(); }, 400);
+    navigate('poem');
+  }else{
+    const box = document.getElementById('pwdBox');
+    box.classList.add('shake');
+    setTimeout(()=>box.classList.remove('shake'),500);
+  }
+}
+document.getElementById('pwdInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') checkPassword();
+});
+
+function togglePlay(){
+  const music = document.getElementById('music');
+  const btn = document.getElementById('playBtn');
+  if(music.paused){
+    music.play().then(()=>{ btn.innerHTML = pauseIcon; }).catch(()=>{});
+  }else{
+    music.pause();
+    btn.innerHTML = playIcon;
+  }
+}
+function toggleMute(){
+  const music = document.getElementById('music');
+  const btn = document.getElementById('muteBtn');
+  music.muted = !music.muted;
+  btn.classList.toggle('muted', music.muted);
+}
+
+function navigate(target){
+  const music = document.getElementById('music');
+  // leaving dua
+  if(currentSection === 'dua' && target !== 'dua'){
+    if(musicWasPlayingBeforeDua && music.paused){
+      music.play().then(()=>{ document.getElementById('playBtn').innerHTML = pauseIcon; });
+    }
+  }
+  // entering dua
+  if(target === 'dua'){
+    musicWasPlayingBeforeDua = !music.paused && !music.muted;
+    if(!music.paused){ music.pause(); document.getElementById('playBtn').innerHTML = playIcon; }
+  }
+  document.querySelectorAll('.app-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(target).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.target===target));
+  currentSection = target;
+  document.querySelector('.app-content').scrollTop = 0;
+}
+
+function toggleFlower(){
+  const rose = document.getElementById('rose');
+  rose.classList.toggle('open');
+  createParticles();
+}
+function createParticles(){
+  const container = document.getElementById('particles');
+  for(let i=0;i<14;i++){
+    const p = document.createElement('span');
+    p.style.setProperty('--x', (Math.random()*200-100)+'px');
+    p.style.setProperty('--y', (Math.random()*-140-30)+'px');
+    p.style.left = '50%';
+    p.style.top = '45%';
+    container.appendChild(p);
+    setTimeout(()=>p.remove(),1500);
+  }
+}
+
+// prevent scroll bounce on ios
+document.addEventListener('touchmove', e=>{ if(e.target.closest('.app-content')) return; }, {passive:false});
+</script>
+</body>
+</html>
